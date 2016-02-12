@@ -4,19 +4,10 @@ var Spade = function Spade() {
 Spade.prototype = {
 	track: function(_elem) {
 		this.target = _elem;
-		//_elem.oninput = this.input;
-		//_elem.spade = this;
-		var spade = this;
-		//var spade = this;
-		var el = document.createElement("div");
-		//var isSupported = ("onchange" in _elem);
-		//console.log(isSupported)
-		//console.log("onchange" in _elem);
 
-		
-		//_elem.addEventListener("change", function(_event) {spade.createEvent(spade.target)});
-		//_elem.textInput.getElement().addEventListener("change", function(_event) {spade.createEvent(spade.target)});
-		//_elem.textInput.getElement().addEventListener("input", function(_event) {spade.createEvent(spade.target)});
+		var spade = this;
+
+		var el = document.createElement("div");
 
 		keyHook = null;
 		if(_elem.textInput && _elem.textInput.getElement) {
@@ -25,10 +16,9 @@ Spade.prototype = {
 			keyHook = _elem;
 		}
 		keyHook.addEventListener("keydown", function(_event) {spade.createEvent(spade.target)});
-		//Maybe this is needed depending on Firefox/other browsers?
+		//Maybe this is needed depending on Firefox/other browsers? Duplicate non-diff events get compiled down.
 		keyHook.addEventListener("keyup", function(_event) {spade.createEvent(spade.target)});
 
-		//_elem.addEventListener("mousedown", function(_event) {spade.createEvent(spade.target)});
 		_elem.addEventListener("mouseup", function(_event) {spade.createEvent(spade.target)});
 		
 	},
@@ -141,16 +131,16 @@ Spade.prototype = {
 					"selEIndex":c.endPos
 				});
 			}
-		} else if (this.stack.length === 1) {
-			//Todo: Edge case
-			//Stack only has 1 element.
 		} else {
-			//Todo: Edge case
-			//No stack to compile! Error.
+			//Just return the empty array.
 		}
 		return compiledStack;
 	},
 	play: function(_stack, _elem) {
+		if(_stack.length === 0) {
+			console.warn("SPADE: No events to play.")
+			return
+		}
 		if(_elem.setValue) {
 			_elem.setValue(_stack[0].difContent);
 		} else {
@@ -193,7 +183,7 @@ Spade.prototype = {
 					_elem.setSelectionRange(tEvent.selFIndex, tEvent.selEIndex);
 				}
 			}
-			if(elapsedTime > _stack[_stack.length - 1].timestamp) {
+			if(_stack[_stack.length - 1] === undefined || elapsedTime > _stack[_stack.length - 1].timestamp) {
 				clearInterval(playbackInterval);
 			}
 			prevTime = curTime;
@@ -237,7 +227,4 @@ Spade.prototype = {
 		}
 		return uncompressedArray;
 	}
-}
-if(module && module.exports) {
-	module.exports = Spade;
 }
