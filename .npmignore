@@ -1,0 +1,8 @@
+*.sublime-project
+*.sublime-workspace
+node_modules/
+tests/
+index.html
+karma.conf.js
+wdio.conf.js
+webpack.config.js
