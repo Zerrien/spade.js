@@ -1,0 +1,57 @@
+<html>
+	<head>
+		<style>
+			textarea {
+				width: 500px;
+				height: 500px;
+			}
+			#editor {
+				width:500px;
+				height:500px;
+			}
+		</style>
+		<script src="./spade.js"></script>
+		<script src="./node_modules/lz-string/libs/lz-string.min.js"></script>
+		<script src="./node_modules/ace-builds/src-min/ace.js"></script>
+		<script>
+			window.onload = function() {
+				var spade = new Spade();
+				spade.track(document.getElementById("textarea"));
+
+				var editor = ace.editor("editor");
+				var spade2 = new Spade();
+				spade2.track(document.getElementById("editor"));
+
+				button.onclick = function() {
+					spade.compile();
+				}
+				button2.onclick = function() {
+					spade.condense();
+				}
+				button3.onclick = function() {
+					spade.expand();
+				}
+				button4.onclick = function() {
+					console.log(spade.renderTime(1));
+				}
+			}
+		</script>
+	</head>
+	<body>
+		<div id="vvv">
+			HBKBLLBLBLBLB
+		</div>
+		<textarea id="textarea"></textarea>
+		<div id="editor"></div>
+		<button id="button">Compile</button>
+		<button id="button2">Condense</button>
+		<button id="button3">Expand</button>
+		<button id="button4">Final Result</button>
+		<button id="button5">Compress</button>
+		<button id="button6">Decompess</button>
+		<button id="button7">Playback</button>
+		<script>
+			vvv.innerHTML = "xccxvvcx";
+		</script>
+	</body>
+</html>

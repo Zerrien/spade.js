@@ -1,230 +1,278 @@
-var Spade = function Spade() {
-	this.stack = [];
-}
-Spade.prototype = {
-	track: function(_elem) {
-		this.target = _elem;
-
-		var spade = this;
-
-		var el = document.createElement("div");
-
-		keyHook = null;
-		if(_elem.textInput && _elem.textInput.getElement) {
-			keyHook = _elem.textInput.getElement();
-		} else {
-			keyHook = _elem;
+"use strict";
+(function() {
+	var root = this;
+	if(typeof root == "object")
+		var prev_Spade = root.Spade;
+	class Spade {
+		constructor() {
+			this.events = [];
+			this.playback = [];
+			this.compiled = [];
+			this.condensed = [];
+			this.speed = 1;
+			this.isReady = true;
 		}
-		keyHook.addEventListener("keydown", function(_event) {spade.createEvent(spade.target)});
-		//Maybe this is needed depending on Firefox/other browsers? Duplicate non-diff events get compiled down.
-		keyHook.addEventListener("keyup", function(_event) {spade.createEvent(spade.target)});
-
-		_elem.addEventListener("mouseup", function(_event) {spade.createEvent(spade.target)});
-		
-	},
-	createEvent: function(_target) {
-		if(_target.getValue) {
-			this.stack.push({
-				"startPos":_target.selection.getCursor(),
-				"endPos":_target.selection.getSelectionAnchor(),
-				"content":_target.getValue(),
-				"timestamp":(new Date()).getTime()
-			});
-		} else {
-			this.stack.push({
-				"startPos":_target.selectionStart,
-				"endPos":_target.selectionEnd,
-				"content":_target.value,
-				"timestamp":(new Date()).getTime()
-			});
+		// Hook into a specific element.
+		track(elem) {
+			//console.log(typeof elem);
+			if(elem.length) {
+				if(elem.length > 1) {
+					throw new Error("Array with more than 1 element was passed.")
+				} else {
+					elem = elem[0];
+				}
+			}
+			if(elem.env !== undefined && elem.env.editor !== undefined) {
+				this.target = elem.env.editor;
+			} else {
+				this.target = elem;
+			}
+			var keyHook =  null;
+			if(elem.textInput && elem.textInput.getElement) {
+				keyHook = elem.textInput.getElement();
+			} else {
+				keyHook = elem;
+			}
+			keyHook.addEventListener("keydown", this.createEvent.bind(this));
+			keyHook.addEventListener("keyup", this.createEvent.bind(this));
+			elem.addEventListener("mouseup", this.createEvent.bind(this));
+			elem.spade = this;
 		}
-	},
-	clear: function() {
-		this.stack = [];
-	},
-	setInput: function(_elem) {
-		_elem.value = this.stack[this.stack.length - 1].content;
-	},
-	compile: function() {
-		var compiledStack = [];
-		if(this.stack.length > 0) {
-			var startTime = this.stack[0].timestamp;
-			var sum = 0;
-			var sum2 = 0;
-			for(var i = 0; i < this.stack.length; i++) {
-				var c = this.stack[i];
-				var adjustedTimestamp = c.timestamp - startTime;
-				var tString = "";	//The changed string.
-				var fIndex = null;	//The first index of changes.
-				var eIndex = null;	//The last index of changes.
-				var dCount = 0;		//Amount of character changes.
-				if(i >= 1) {
-					var p = this.stack[i - 1];
-					var isOkay = false;
-					for(var key in p) {
-						if(key != "timestamp") {
-							if(typeof p[key] === "string") {
-								if(p[key] !== c[key]) {
-									isOkay = true;
-								}
-							} else {
-								for(var key2 in p[key]) {
-									if(c[key][key2] !== undefined) {
-										if(p[key][key2] !== c[key][key2]) {
-											isOkay = true;
+		// Create a semi-raw event.
+		createEvent(event) {
+			if(this.target.getValue) {
+				this.events.push({
+					startPos: this.target.selection.getCursor(),
+					endPos: this.target.selection.getSelectionAnchor(),
+					content: this.target.getValue(),
+					timestamp: (new Date()).getTime()
+				});
+			} else {
+				this.events.push({
+					startPos: this.target.selectionStart,
+					endPos: this.target.selectionEnd,
+					content: this.target.value,
+					timestamp: (new Date()).getTime()
+				});
+			}
+			this.isReady = false;
+		}
+		// Turn an array of compiled diffs into an array of arrays.
+		condense() {
+			if(!this.isReady) {
+				console.warn("Condensing outdated compiled array.");
+			}
+			if(!this.compiled.length) {
+				console.warn("No compiled array. Has the events array been compiled?");
+				return this.condensed;
+			}
+			var condensedArray = [];
+			for(var i = 0; i < this.compiled.length; i++) {
+				var u = this.compiled[i];
+				if(u.selFIndex !== undefined && u.selEIndex !== undefined && u.selFIndex.row !== undefined && u.selEIndex !== undefined) {
+					condensedArray.push([
+						u.timestamp,
+						u.difContent,
+						u.difFIndex,
+						u.difEIndex,
+						u.selFIndex.row,
+						u.selFIndex.column,
+						u.selEIndex.row,
+						u.selEIndex.column
+					]);
+				} else {
+					condensedArray.push([
+						u.timestamp,
+						u.difContent,
+						u.difFIndex,
+						u.difEIndex,
+						u.selFIndex,
+						u.selEIndex
+					]);
+				}
+			}
+			return this.condensed = condensedArray;
+		}
+		// Take an array of arrays and expand it into an array of compiled diff objects.
+		expand(stack) {
+			if(this.compiled.length) {
+				console.warn("Overriding old compiled array with a new one!");
+			}
+			var uncompressedArray = [];
+			for(var i = 0; i < stack.length; i++) {
+				var c = stack[i];
+				if(c.length === 8) {
+					uncompressedArray.push({
+						timestamp: c[0],
+						difContent: c[1],
+						difFIndex: c[2],
+						difEIndex: c[3],
+						selFIndex: {
+							row: c[4],
+							column: c[5]
+						},
+						selEIndex: {
+							row: c[6],
+							column: c[7]
+						}
+					})
+				} else {
+					uncompressedArray.push({
+						timestamp: c[0],
+						difContent: c[1],
+						difFIndex: c[2],
+						difEIndex: c[3],
+						selFIndex: c[4],
+						selEIndex: c[5]
+					})
+				}
+			}
+			return this.compiled = uncompressedArray;
+		}
+		// Return the final string at a specific time [0, 1]
+		renderTime(t) {
+			var stack = this.compiled;
+			if(!stack.length) {
+				console.warn("No events to play!");
+			}
+
+			var tTime = stack[stack.length - 1].timestamp;
+			var frameAtTime = stack[0].difContent;
+			for(var i = 1; i < stack.length; i++) {
+				var tEvent = stack[i];
+				if(t * tTime < tEvent.timestamp) {
+					tEvent = stack[--i];
+					break;
+				}
+				var oVal = frameAtTime;
+				if(tEvent.difFIndex !== null && tEvent.difEIndex !== null) {
+					frameAtTime = oVal.substring(0, tEvent.difFIndex) + tEvent.difContent + oVal.substring(oVal.length - tEvent.difEIndex, oVal.length);
+				}
+			}
+			return {
+				text: frameAtTime,
+				sStart: tEvent.selFIndex,
+				sEnd: tEvent.selEIndex
+			}
+		}
+		// Turn a stack of semi-raw events and create a series of diffs.
+		compile() {
+			var compiledStack = [];
+			if(this.events.length > 0) {
+				var startTime = this.events[0].timestamp;
+				for(var i = 0; i < this.events.length; i++) {
+					var c = this.events[i];
+					var adjustedTimestamp = c.timestamp - startTime;
+
+					var tString = "";
+					var fIndex = null;
+					var eIndex = null;
+					var dCount = 0;
+					if(i === 0) {
+						tString = c.content;
+						fIndex = 0;
+						eIndex = 0;
+					} else {
+						var p = this.events[i - 1];
+						var isOkay = false;
+						for(var key in p) {
+							if(key != "timestamp") {
+								if(typeof p[key] == "string") {
+									if(p[key] !== c[key]) {
+										isOkay = true;
+									}
+								} else {
+									if(typeof p[key] == "object") {
+										for(var key2 in p[key]) {
+											if(c[key][key2] !== undefined) {
+												if(p[key][key2] !== c[key][key2]) {
+													isOkay = true;
+												}
+											} else {
+												console.warn("Warning: c[key][key2] doesn't exist, but p[key][key2] does.");
+												isOkay = true;
+											}
 										}
 									} else {
-										console.warn("Warning: c[key][key2] doesn't exist, but p[key][key2] does.");
-										isOkay = true;
+										if(p[key] !== c[key]) {
+											isOkay = true;
+										}
 									}
 								}
 							}
 						}
-					}
-					if(!isOkay) {
-						sum2++;
-						continue;
-					}
-					sum++;
-					if(p.content != c.content) {
-						//Check from the start to the end, which characters are different.
-						for(var j = 0; j < Math.max(p.content.length, c.content.length); j++) {
-							if(p.content.charAt(j) === c.content.charAt(j)) {
-								if(fIndex != null) {
+						if(!isOkay) {
+							continue;
+						}
+						if(p.content !== c.content) {
+							for(var j = 0; j < Math.max(p.content.length, c.content.length); j++) {
+								if(p.content.charAt(j) === c.content.charAt(j)) {
+									if(fIndex !== null) {
+										tString += c.content.charAt(j);
+										dCount++;
+									}
+								} else {
 									tString += c.content.charAt(j);
+									if(fIndex === null) {
+										fIndex = j;
+									}
 									dCount++;
 								}
-							} else {
-								tString += c.content.charAt(j);
-								if(fIndex === null) {
-									fIndex = j;
-								}
-								dCount++;
 							}
-						}
-						//Check from the end to the start, which characters are different.
-						for(var j = 0; j < Math.min(p.content.length, c.content.length) - fIndex; j++) {
-							if(p.content.charAt(p.content.length - 1 - j) !== c.content.charAt(c.content.length - 1 - j)) {
-								if(eIndex == null) {
-									eIndex = j;
-									break;	
+							for(var j = 0; j < Math.min(p.content.length, c.content.length) - fIndex; j++) {
+								if(p.content.charAt(p.content.length - 1 - j)  !== c.content.charAt(c.content.length - 1 - j)) {
+									if(eIndex === null) {
+										eIndex = j;
+										break;
+									}
 								}
-							}
+ 							}
+ 							if(eIndex === null) {
+ 								eIndex = Math.min(p.content.length, c.content.length) - fIndex;
+ 							}
+ 							tString = tString.substring(0, tString.length - eIndex);
+						} else {
+							// No change, only cursor movement
 						}
-						//This accounts for the fact when changing from "aa" to "aaa" (for example).
-						if(eIndex === null) {
-							eIndex = Math.min(p.content.length, c.content.length) - fIndex;
-						}
-						tString = tString.substring(0, tString.length - eIndex);
 					}
-				} else {
-					tString = c.content;
-					fIndex = 0;
-					eIndex = tString.length;
+					compiledStack.push({
+						timestamp: adjustedTimestamp,
+						difContent: tString,
+						difFIndex: fIndex,
+						difEIndex: eIndex,
+						selFIndex: c.startPos,
+						selEIndex: c.endPos
+					});
 				}
-				compiledStack.push({
-					"timestamp":adjustedTimestamp,
-					"difContent":tString,
-					"difFIndex":fIndex,
-					"difEIndex":eIndex,
-					"selFIndex":c.startPos,
-					"selEIndex":c.endPos
-				});
+			} else {
+				// Stack is empty! We can't compile this.
 			}
-		} else {
-			//Just return the empty array.
+			this.isReady = true;
+			return this.compiled = compiledStack;
 		}
-		return compiledStack;
-	},
-	play: function(_stack, _elem) {
-		if(_stack.length === 0) {
-			console.warn("SPADE: No events to play.")
-			return
+		// Create a new Spade from an existing condensed array.
+		static fromCondensed(condensed) {
+			var tSpade = new Spade();
+			tSpade.condensed = condensed;
+			return tSpade;
 		}
-		if(_elem.setValue) {
-			_elem.setValue(_stack[0].difContent);
-		} else {
-			_elem.value = _stack[0].difContent
+		// Create a new Spade from an existing compiled array.
+		static fromCompiled(compiled) {
+			var tSpade = new Spade();
+			tSpade.compiled = compiled;
+			return tSpade;
 		}
-		_stack.shift()
-		var curTime, dTime;
-		var elapsedTime = 0;
-		var prevTime = (new Date()).getTime();
-		var playbackInterval = setInterval(function() {
-			curTime = (new Date()).getTime();
-			dTime = curTime - prevTime;
-			dTime *= 1;	//Multiply for faster/slower playback speeds.
-			elapsedTime += dTime;
-			var tArray = _stack.filter(function(_event) {
-				return ((_event.timestamp) >= (elapsedTime - dTime)) && ((_event.timestamp) < (elapsedTime));
-			});
-			for(var i = 0; i < tArray.length; i++) {
-				var tEvent = tArray[i];
-				var oVal = null;
-				if(_elem.getValue) {
-					oVal = _elem.getValue();
-				} else {
-					oVal = _elem.value;
-				}
-				if(tEvent.difFIndex !== null && tEvent.difEIndex !== null) {
-					if(_elem.setValue) {
-						_elem.setValue(oVal.substring(0, tEvent.difFIndex) + tEvent.difContent + oVal.substring(oVal.length - tEvent.difEIndex, oVal.length));
-					} else {
-						_elem.value = oVal.substring(0, tEvent.difFIndex) + tEvent.difContent + oVal.substring(oVal.length - tEvent.difEIndex, oVal.length)
-					}
-				}
-				if(_elem.selection && _elem.selection.moveCursorToPosition) {
-					//console.log(tEvent);
-					_elem.selection.moveCursorToPosition(tEvent.selFIndex);
-					_elem.selection.setSelectionAnchor(tEvent.selEIndex.row, tEvent.selEIndex.column);
-					_elem.selection.selectTo(tEvent.selFIndex.row, tEvent.selFIndex.column);
-				} else {
-					_elem.focus();
-					_elem.setSelectionRange(tEvent.selFIndex, tEvent.selEIndex);
-				}
-			}
-			if(_stack[_stack.length - 1] === undefined || elapsedTime > _stack[_stack.length - 1].timestamp) {
-				clearInterval(playbackInterval);
-			}
-			prevTime = curTime;
-		}, 10);
-	},
-	compress: function(_stack) {
-		var compressedArray = [];
-		for(var i = 0; i < _stack.length; i++) {
-			var u = _stack[i];
-			compressedArray.push([
-				u.timestamp,
-				u.difContent,
-				u.difFIndex,
-				u.difEIndex,
-				u.selFIndex.row,
-				u.selFIndex.column,
-				u.selEIndex.row,
-				u.selEIndex.column
-			]);
-		}
-		return compressedArray;
-	},
-	uncompress: function(_array) {
-		var uncompressedArray = [];
-		for(var i = 0 ; i < _array.length; i++) {
-			var c = _array[i];
-			uncompressedArray.push({
-				"timestamp":c[0],
-				"difContent":c[1],
-				"difFIndex":c[2],
-				"difEIndex":c[3],
-				"selFIndex":{
-					"row":c[4],
-					"column":c[5]
-				},
-				"selEIndex":{
-					"row":c[6],
-					"column":c[7]
-				},
-			});
-		}
-		return uncompressedArray;
 	}
-}
+	Spade.noConflict = function() {
+		root.Spade = previous_Spade;
+		return Spade;
+	}
+	if(typeof exports !== "undefined") {
+		if(typeof module !== "undefined" && module.exports) {
+			exports = module.exports = Spade;
+		}
+		exports.Spade = Spade;
+	} else {
+		root.Spade = Spade;
+	}
+}).call(this);

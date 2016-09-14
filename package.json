@@ -1,0 +1,41 @@
+{
+  "name": "spade.js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "spade.js",
+  "scripts": {
+    "test": "karma start; wdio ./wdio.conf.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Zerrien/spade.js"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/Zerrien/spade.js/issues"
+  },
+  "homepage": "",
+  "devDependencies": {
+    "ace-builds": "^1.2.5",
+    "babel-loader": "^5.0.0",
+    "brace": "^0.8.0",
+    "chai": "^3.5.0",
+    "chromedriver": "^2.24.1",
+    "jquery": "^3.1.0",
+    "karma": "^1.3.0",
+    "karma-chrome-launcher": "^2.0.0",
+    "karma-es6-shim": "^1.0.0",
+    "karma-mocha": "~0.1",
+    "karma-mocha-reporter": "^2.0.0",
+    "karma-webpack": "^1.8.0",
+    "lz-string": "^1.4.4",
+    "mocha": "^3.0.2",
+    "phantomjs-prebuilt": "^2.1.12",
+    "wdio-mocha-framework": "^0.4.3",
+    "wdio-spec-reporter": "0.0.3",
+    "webdriverio": "^4.2.15",
+    "webpack": "^1.13.2"
+  },
+  "dependencies": {}
+}
