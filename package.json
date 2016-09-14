@@ -1,7 +1,7 @@
 {
   "name": "spade.js",
   "version": "1.0.0",
-  "description": "",
+  "description": "Dig into a user's textarea or Ace typing sessions.",
   "main": "spade.js",
   "scripts": {
     "test": "karma start; wdio ./wdio.conf.js"
@@ -10,12 +10,12 @@
     "type": "git",
     "url": "https://github.com/Zerrien/spade.js"
   },
-  "author": "",
+  "author": "Josh Callebaut <josh.callebaut@gmail.com>",
   "license": "UNLICENSED",
   "bugs": {
     "url": "https://github.com/Zerrien/spade.js/issues"
   },
-  "homepage": "",
+  "homepage": "zerrien.github.com/spade.js",
   "devDependencies": {
     "ace-builds": "^1.2.5",
     "babel-loader": "^5.0.0",
@@ -37,5 +37,9 @@
     "webdriverio": "^4.2.15",
     "webpack": "^1.13.2"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "keywords":[
+    "ace",
+    "textarea"
+  ]
 }

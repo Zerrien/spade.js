@@ -1,33 +1,49 @@
-# Spade
+# Spade.js
+Dig into a user's textarea or Ace typing sessions.
 
 ## What is it?
-A tool that hooks into typeable textareas and records the keystrokes for playback later.
+
+A simple library that can dig (hook) into typeable textareas and record keystrokes to playback later.
 
 ## How can I use it?
-Be sure to include it in  your project somehow.
-```javascript
-//The following example will create a text area that will playback all the inputs from the first 5 seconds from page-load.
-textArea = document.createElement('textarea');
-document.body.appendChild(textArea);
-//Create a new instance of Spade
-spade = new Spade();
-//Hook into our target using track
-spade.track(textArea);
-//Type stuff for 5 seconds.
-setTimeout(function() {
-  //Remove duplicates and the like
-  events = spade.compile();
-  //Play it back!
-  spade.play(events, textArea);
-}, 5000);
+
+Create a new Spade.js object and track() any DOM element. Works with jQuery, or even the ACE object itself!
+
+```html
+<html>
+	<head>
+		<script src="./spade.js"></script>
+		<script>
+			window.onload = function() {
+				var textarea = document.getElementById("aTextArea");
+				var button = document.getElementById("processSpade");
+
+				var spade = new Spade();
+				// Tell Spade which element to keep track of.
+				spade.track(textarea);
+
+				button.onclick = function() {
+					// Turn semi-raw events into a list of diffs.
+					spade.compile();
+					// Turn an array of objects in an array of arrays.
+					spade.condense();
+
+					// Turn our array of arrays into a nice string.
+					var spadeString = JSON.stringify(spade.condensed);
+					// Compress spadeString using your favorite compression library!
+					// Upload it to a server to save to playback for another day.
+
+				}
+			}
+		</script>
+	</head>
+	<body>
+		<textarea id="aTextArea"></textarea>
+		<button id="processSpade">Compile & Condense</button>
+	</body>
+</html>
 ```
-## Extra Functions
-### Compress/Uncompress
-Event stacks are objects and have character-heavy strings as keys. If we want to save this information, we can compress it down further using `compress()`
-```javascript
-events = spade.compile();
-compressedEvents = spade.compress(events);
-//Stuff happens... Saving, loading
-uncompressedEvents = spade.uncompress(events);
-spade.play(uncompressedEvents, textArea);
-```
+
+## Caveats
+
+Spade.js does not play back recorded sessions. Check the examples folder for an example on how to playback an existing, condensed array.
